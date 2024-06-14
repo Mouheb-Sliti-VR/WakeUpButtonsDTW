@@ -17,21 +17,23 @@
             margin: 0;
         }
         h1 {
-            color: #fff;
+            color: #000000;
             font-size: 3em;
             text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
-            margin-bottom: 40px;
+            margin-bottom: 50px; 
         }
         .button-container {
             display: flex;
             gap: 20px;
+            margin-top: 40px;
         }
         button {
             background-color: #fff;
-            color: #000000;
+            color: #000;
             border: none;
             padding: 15px 30px;
             font-size: 1.2em;
+            font-weight: bold;
             border-radius: 50px;
             cursor: pointer;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
@@ -45,36 +47,75 @@
         }
         .log {
             margin-top: 40px;
-            color: rgb(56, 245, 56);
-            font-weight: bolder;
             font-size: 1.2em;
-            -webkit-text-stroke-color: #000000;
-            -webkit-text-stroke-width: 0.8px;
+            -webkit-text-stroke-color: #000;
+            -webkit-text-stroke-width: 0.0px;
+        }
+        .log-entry {
+            margin-bottom: 10px;
+        }
+        .log-entry.waking-up {
+            color: black;
+        }
+        .log-entry.success {
+            color: green;
+            font-weight: bold;
         }
     </style>
     <script>
-        function sendGetRequest(url, buttonName) {
-            fetch(url)
-                .then(response => {
-                    if (response.ok) {
-                        console.log(`Request to ${url} was successful.`);
-                        document.getElementById('log').innerText = `${buttonName}  is running successfully !`;
-                    } else {
-                        console.log(`Request to ${url} failed with status: ${response.status}`);
-                    }
-                })
-                .catch(error => {
-                    console.log(`Request to ${url} failed with error: ${error}`);
-                });
+        function sendGetRequestSequentially(servers) {
+            const logElement = document.getElementById('log');
+            logElement.innerHTML = '';
+
+            // Disable the button
+            const button = document.querySelector('button');
+            button.disabled = true;
+
+            const wakeUpServer = (index) => {
+                if (index >= servers.length) {
+                    button.disabled = false;
+                    return;
+                }
+
+                const { url, name } = servers[index];
+                const logEntry = document.createElement('div');
+                logEntry.classList.add('log-entry', 'waking-up');
+                logEntry.innerText = `Waking up: ${name}...`;
+                logElement.appendChild(logEntry);
+
+                fetch(url)
+                    .then(response => {
+                        if (response.ok) {
+                            console.log(`Request to ${url} was successful.`);
+                            logEntry.classList.remove('waking-up');
+                            logEntry.classList.add('success');
+                            logEntry.innerText = `${name} is running successfully!`;
+                        } else {
+                            console.log(`Request to ${url} failed with status: ${response.status}`);
+                            logEntry.innerText = `${name} failed with status: ${response.status}`;
+                        }
+                    })
+                    .catch(error => {
+                        console.log(`Request to ${url} failed with error: ${error}`);
+                        logEntry.innerText = `${name} failed with error: ${error}`;
+                    })
+                    .finally(() => {
+                        wakeUpServer(index + 1);
+                    });
+            };
+
+            wakeUpServer(0);
         }
     </script>
 </head>
 <body>
-    <h1>Wake Up</h1>
+    <h1>Orange eXtended Store Server Manager</h1>
     <div class="button-container">
-        <button onclick="sendGetRequest('https://mockedgateway.onrender.com/health-check', 'Mocked Gateway')">Mocked Gateway</button>
-        <button onclick="sendGetRequest('https://marketplace-fmjs.onrender.com/health-check', 'Marketplace')">Marketplace</button>
-        <button onclick="sendGetRequest('https://pseudo-gateway.onrender.com/health-check', 'Mocked DISCO')">Mocked DISCO</button>
+        <button onclick="sendGetRequestSequentially([
+            { url: 'https://mockedgateway.onrender.com/health-check', name: 'Mocked Gateway' },
+            { url: 'https://marketplace-fmjs.onrender.com/health-check', name: 'Marketplace' },
+            { url: 'https://pseudo-gateway.onrender.com/health-check', name: 'Mocked DISCO' }
+        ])">Wake Up Servers</button>
     </div>
     <div id="log" class="log"></div>
 </body>
